@@ -1,10 +1,18 @@
 FROM ubuntu:20.04
 
+# Install system dependencies
 RUN apt-get update \
-    && apt-get install -y curl gnupg2 software-properties-common default-jdk
+    && apt-get install -y \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    default-jdk \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 
+# Install NVIDIA Docker support and Bazel
 RUN curl -fsSL https://bazel.build/bazel-release.pub.gpg | apt-key add - \
     && curl -fsSL https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add - \
     && curl -s -L https://nvidia.github.io/nvidia-docker/ubuntu20.04/nvidia-docker.list | tee /etc/apt/sources.list.d/nvidia-docker.list \
@@ -19,28 +27,38 @@ RUN curl -fsSL https://bazel.build/bazel-release.pub.gpg | apt-key add - \
     awscli \
     && rm -rf /var/lib/apt/lists/*
 
-# Download miniconda and install silently.
-ENV PATH /opt/conda/bin:$PATH
-RUN curl -fsSLo Miniconda3-latest-Linux-x86_64.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
-    rm Miniconda3-latest-Linux-x86_64.sh && \
-    conda clean -a -y
+# Install Python 3.9
+RUN add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y python3.9 python3.9-dev python3.9-distutils \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.9 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.9 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+
+# Install uv for fast dependency management
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
 
 # Setup working environment
 ARG NUPLAN_HOME=/nuplan_devkit
 WORKDIR $NUPLAN_HOME
 
-COPY requirements.txt requirements_torch.txt environment.yml /nuplan_devkit/
-RUN PIP_EXISTS_ACTION=w conda env create -f $NUPLAN_HOME/environment.yml
+# Copy dependency files
+COPY pyproject.toml uv.lock .python-version /nuplan_devkit/
 
+# Copy source code
 RUN mkdir -p $NUPLAN_HOME/nuplan
-
-COPY setup.py $NUPLAN_HOME
 COPY nuplan $NUPLAN_HOME/nuplan
 
-SHELL ["conda", "run", "-n", "nuplan", "/bin/bash", "-c"]
+# Install dependencies with uv (CUDA enabled)
+# Use --system to install in the container's Python instead of creating a venv
+RUN uv sync --frozen --all-extras --no-dev
 
-RUN bash -c "pip install -e ."
+# Install nuplan-devkit in editable mode
+RUN uv pip install --system -e .
 
 ENV NUPLAN_MAPS_ROOT=/data/sets/nuplan/maps \
     NUPLAN_DATA_ROOT=/data/sets/nuplan \

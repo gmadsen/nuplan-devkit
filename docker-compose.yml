@@ -4,6 +4,7 @@ x-nuplan-volumes: &x-nuplan-volumes
   volumes:
     - "$NUPLAN_DATA_ROOT:/data/sets/nuplan:rw"
     - "$NUPLAN_EXP_ROOT:/data/exp/nuplan:rw"
+    - "uv-cache:/root/.cache/uv:rw"  # uv cache for faster rebuilds
 
 
 x-nuplan-maps: &x-nuplan-maps
@@ -47,3 +48,8 @@ services:
     depends_on:
       - submission
     entrypoint: /nuplan_devkit/nuplan/entrypoint_simulation.sh
+
+# Named volumes for caching
+volumes:
+  uv-cache:
+    driver: local
