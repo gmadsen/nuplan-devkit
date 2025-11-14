@@ -180,3 +180,151 @@ docs:
 docs-serve:
     @echo "📚 Serving documentation at http://localhost:8000"
     cd docs/_build/html && python -m http.server 8000
+
+# Train a raster model (full tutorial training)
+train:
+    @echo "🚗 Training raster model (10 epochs, 500 scenarios)..."
+    @echo "   Output: /tmp/tutorial_nuplan_framework/training_raster_experiment/"
+    @echo "   Monitor: tail -f /tmp/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/*/log.txt"
+    uv run python nuplan/planning/script/run_training.py \
+        group=/tmp/tutorial_nuplan_framework \
+        cache.cache_path=/tmp/tutorial_nuplan_framework/cache \
+        experiment_name=training_raster_experiment \
+        job_name=train_default_raster \
+        py_func=train \
+        +training=training_raster_model \
+        scenario_builder=nuplan_mini \
+        scenario_filter.limit_total_scenarios=500 \
+        lightning.trainer.params.accelerator=ddp \
+        lightning.trainer.params.max_epochs=10 \
+        data_loader.params.batch_size=8 \
+        data_loader.params.num_workers=8
+
+# Quick training run (reduced epochs/scenarios for testing)
+train-quick:
+    @echo "🚗 Quick training (3 epochs, 100 scenarios)..."
+    uv run python nuplan/planning/script/run_training.py \
+        group=/tmp/tutorial_nuplan_framework \
+        cache.cache_path=/tmp/tutorial_nuplan_framework/cache \
+        experiment_name=training_raster_quick \
+        job_name=train_quick \
+        py_func=train \
+        +training=training_raster_model \
+        scenario_builder=nuplan_mini \
+        scenario_filter.limit_total_scenarios=100 \
+        lightning.trainer.params.accelerator=ddp \
+        lightning.trainer.params.max_epochs=3 \
+        data_loader.params.batch_size=8 \
+        data_loader.params.num_workers=8
+
+# Run simulation with simple planner
+simulate:
+    @echo "🎮 Running simulation with simple planner..."
+    uv run python nuplan/planning/script/run_simulation.py \
+        experiment_name=simulation_simple_experiment \
+        group=/tmp/tutorial_nuplan_framework \
+        planner=simple_planner \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter=all_scenarios \
+        scenario_filter.scenario_types=[near_multiple_vehicles,on_pickup_dropoff,starting_unprotected_cross_turn,high_magnitude_jerk] \
+        scenario_filter.num_scenarios_per_type=10
+
+# Run simulation with trained ML planner (auto-detects latest checkpoint if not specified)
+simulate-ml checkpoint="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -z "{{checkpoint}}" ]; then
+        echo "🔍 No checkpoint specified, finding most recent..."
+        CHECKPOINT=`find /tmp/tutorial_nuplan_framework/training_raster_experiment -name "*.ckpt" -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1`
+        if [ -z "$CHECKPOINT" ]; then
+            echo "❌ No checkpoints found in /tmp/tutorial_nuplan_framework/training_raster_experiment/"
+            echo "   Run 'just train' first to create a checkpoint"
+            exit 1
+        fi
+        echo "   Using: $CHECKPOINT"
+    else
+        CHECKPOINT="{{checkpoint}}"
+        echo "🎮 Running simulation with ML planner..."
+        echo "   Using checkpoint: $CHECKPOINT"
+    fi
+
+    # AIDEV-NOTE: Use direct python instead of uv run to avoid Ray uv integration issues
+    # Ray's uv integration creates minimal venvs without extras like torch-cuda11
+    .venv/bin/python nuplan/planning/script/run_simulation.py \
+        experiment_name=simulation_raster_experiment \
+        group=/tmp/tutorial_nuplan_framework \
+        planner=ml_planner \
+        model=raster_model \
+        planner.ml_planner.model_config=\${model} \
+        planner.ml_planner.checkpoint_path="$CHECKPOINT" \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter=all_scenarios \
+        scenario_filter.scenario_types=[near_multiple_vehicles,on_pickup_dropoff,starting_unprotected_cross_turn,high_magnitude_jerk] \
+        scenario_filter.num_scenarios_per_type=10 \
+        worker.threads_per_node=4
+
+# Launch nuBoard visualization dashboard
+nuboard *paths:
+    @echo "📊 Launching nuBoard dashboard..."
+    @if [ -z "{{paths}}" ]; then \
+        echo "   No simulation paths provided - you can load them in the UI"; \
+        uv run python nuplan/planning/script/run_nuboard.py scenario_builder=nuplan_mini; \
+    else \
+        echo "   Loading: {{paths}}"; \
+        uv run python nuplan/planning/script/run_nuboard.py scenario_builder=nuplan_mini simulation_path='[{{paths}}]'; \
+    fi
+
+# Monitor training progress (follows log file)
+train-monitor:
+    @echo "👀 Monitoring training logs..."
+    @LOG_FILE=$$(ls -t /tmp/tutorial_nuplan_framework/training_raster_experiment/train_*/*/log.txt 2>/dev/null | head -1); \
+    if [ -z "$$LOG_FILE" ]; then \
+        echo "❌ No training logs found in /tmp/tutorial_nuplan_framework/training_raster_experiment/"; \
+        exit 1; \
+    else \
+        echo "   Following: $$LOG_FILE"; \
+        tail -f "$$LOG_FILE"; \
+    fi
+
+# Launch TensorBoard for training visualization
+tensorboard:
+    @echo "📈 Launching TensorBoard..."
+    @LATEST_RUN=$$(ls -td /tmp/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/*/ 2>/dev/null | head -1); \
+    if [ -z "$$LATEST_RUN" ]; then \
+        echo "❌ No training runs found"; \
+        exit 1; \
+    else \
+        echo "   Viewing: $$LATEST_RUN"; \
+        echo "   URL: http://localhost:6010"; \
+        uv run tensorboard --logdir "$$LATEST_RUN" --port 6010; \
+    fi
+
+# List available model checkpoints
+checkpoints:
+    @echo "📦 Available model checkpoints:"
+    @find /tmp/tutorial_nuplan_framework/training_raster_experiment -name "*.ckpt" -type f 2>/dev/null | \
+        while read ckpt; do \
+            size=$$(du -h "$$ckpt" | cut -f1); \
+            echo "   [$$size] $$ckpt"; \
+        done || echo "   No checkpoints found"
+
+# Clean up temp directories (Ray sessions, stale cache)
+clean-tmp:
+    @echo "🧹 Cleaning up temp directories..."
+    @echo "📊 Before cleanup:"
+    @du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"
+    @du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"
+    @echo ""
+    @echo "🗑️  Removing Ray sessions..."
+    @rm -rf ~/.tmp/ray/session-* 2>/dev/null || true
+    @rm -rf /tmp/ray/session-* 2>/dev/null || true
+    @echo "🗑️  Removing old nuPlan cache (>30 days)..."
+    @find /tmp/tutorial_nuplan_framework/cache -mtime +30 -type f -delete 2>/dev/null || true
+    @echo ""
+    @echo "📊 After cleanup:"
+    @du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"
+    @du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"
+    @echo "✓ Cleanup complete!"

@@ -60,6 +60,20 @@ def initialize_ray(
             if key in os.environ
         }
     }
+    # AIDEV-NOTE: Force non-interactive matplotlib backend for Ray workers
+    # Jupyter sets MPLBACKEND=module://matplotlib_inline.backend_inline which is invalid in Ray workers
+    runtime_env["env_vars"]["MPLBACKEND"] = "Agg"
+
+    # AIDEV-NOTE: Unset VIRTUAL_ENV to avoid uv path mismatch warnings in Ray workers
+    # Ray packages the project into temp dirs, so absolute VIRTUAL_ENV paths don't match
+    # uv will auto-detect the venv from pyproject.toml in the working_dir
+    runtime_env["env_vars"]["VIRTUAL_ENV"] = ""
+
+    # AIDEV-NOTE: Set working_dir to project root so Ray can package the full project
+    # Ray will create its own venv from pyproject.toml with all dependencies including torch
+    project_root = Path(__file__).resolve().parents[4]  # worker_ray.py is at nuplan/planning/utils/multithreading/
+    runtime_env["working_dir"] = str(project_root)
+
     logger.info(f"Ray runtime environment variables: {runtime_env['env_vars'].keys()}")
 
     # Find a way in how the ray should be initialized
