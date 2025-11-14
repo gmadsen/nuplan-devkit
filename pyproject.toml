@@ -34,6 +34,7 @@ dependencies = [
     "control==0.9.1",
     "coverage",
     "docker",
+    "dotenv>=0.9.9",
     "Fiona",
     "geopandas>=0.12.1",
     "grpcio==1.43.0",
@@ -59,6 +60,8 @@ dependencies = [
     "rasterio",
     "ray",
     "requests",
+    "beautifulsoup4",  # HTML parsing for S3 bucket scraping
+    "rich",  # Beautiful CLI output (tables, progress bars)
     "retry",
     "rtree",
     "s3fs",

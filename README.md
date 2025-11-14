@@ -9,6 +9,48 @@ nuPlan is the world's first large-scale planning benchmark for autonomous vehicl
 - 🤖 **ML-ready**: PyTorch Lightning training pipeline
 - 📈 **Rich metrics**: Safety, comfort, progress evaluation
 
+## ✨ Enhanced Dataset Management Tools
+
+This fork includes **comprehensive CLI tools** for managing the massive nuPlan dataset (144 sensor blob zips across train/val/test!):
+
+### 🔍 Explore the Complete Dataset
+```bash
+just explore                    # View all 13 database splits + 144 sensor blob sets
+just explore-sensors train      # See what's in train_set (43 camera + 43 lidar)
+```
+
+### 📦 Inventory - Know What You Have
+```bash
+just inventory                  # Beautiful table: local vs remote comparison
+just inventory-logs             # Which logs have sensor data locally
+```
+
+### 🗺️ Smart Mapping - Find What You Need
+```bash
+# Map a specific log to required sensor zips
+just map-log 2021.05.12.22.00.38_veh-35_01008_01518
+
+# Map all mini DBs to show which sensor sets are needed
+just map-db /path/to/splits/mini/*.db --summary
+```
+
+### 📥 Selective Downloads - Save Bandwidth & Storage
+```bash
+# Generate download scripts for tutorial (camera_0 + lidar_0 = ~410GB)
+just download-tutorial
+
+# Custom sensor sets (download only what you need!)
+just download-sensors camera="0,1,2" lidar="0,1"
+```
+
+**Why use these tools?**
+- ✅ **Full dataset visibility** - Understand all 144 sensor blob zips (not just mini's 18)
+- ✅ **Selective downloads** - Download specific sensor sets instead of all 15TB
+- ✅ **Smart mapping** - Know exactly which zips contain your scenario's sensor data
+- ✅ **Beautiful output** - Rich CLI with tables, colors, progress indicators
+
+See [CLAUDE.md](CLAUDE.md#dataset-management) for complete documentation.
+
 ## Quick Start
 
 ### Prerequisites
@@ -97,6 +139,12 @@ This project uses [Just](https://github.com/casey/just) for common commands. Run
 just setup              # Full dev environment (CUDA)
 just setup-cpu          # CPU-only environment
 just install            # Core dependencies only
+
+# Dataset Management (NEW!)
+just explore            # Show complete dataset structure (144 sensor zips)
+just inventory          # Check what's downloaded locally
+just map-log <log>      # Find which sensor zips contain a log
+just download-tutorial  # Generate download scripts for tutorial
 
 # Development
 just tutorial           # Launch Jupyter Lab

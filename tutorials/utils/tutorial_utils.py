@@ -181,6 +181,7 @@ def serialize_scenario(
     :param future_time_horizon: Future time horizon in trajectory.
     :return: SimulationHistory containing all scenes.
     """
+    print(f"🔍 DEBUG: Serializing scenario...")
     simulation_history = SimulationHistory(scenario.map_api, scenario.get_mission_goal())
     ego_controller = PerfectTrackingController(scenario)
     simulation_time_controller = StepSimulationTimeController(scenario)
@@ -190,7 +191,12 @@ def serialize_scenario(
     history_buffer = _create_dummy_simulation_history_buffer(scenario=scenario)
 
     # Get all states
-    for _ in range(simulation_time_controller.number_of_iterations()):
+    total_iterations = simulation_time_controller.number_of_iterations()
+    skipped_count = 0
+    processed_count = 0
+    print(f"🔍 DEBUG: Total iterations: {total_iterations}")
+
+    for _ in range(total_iterations):
         iteration = simulation_time_controller.get_iteration()
         ego_state = ego_controller.get_state()
         observation = observations.get_observation()
@@ -198,7 +204,15 @@ def serialize_scenario(
 
         # Log play back trajectory
         current_state = scenario.get_ego_state_at_iteration(iteration.index)
-        states = scenario.get_ego_future_trajectory(iteration.index, future_time_horizon, num_poses)
+        states = list(scenario.get_ego_future_trajectory(iteration.index, future_time_horizon, num_poses))
+
+        # Skip iterations that don't have enough future trajectory data
+        if len(states) == 0:
+            skipped_count += 1
+            next_iteration = simulation_time_controller.next_iteration()
+            continue
+
+        processed_count += 1
         trajectory = InterpolatedTrajectory(list(itertools.chain([current_state], states)))
 
         simulation_history.add_sample(
@@ -210,6 +224,8 @@ def serialize_scenario(
             ego_controller.update_state(iteration, next_iteration, ego_state, trajectory)
             observations.update_observation(iteration, next_iteration, history_buffer)
 
+    print(f"✅ DEBUG: Processed {processed_count} iterations, skipped {skipped_count}")
+    print(f"📊 DEBUG: SimulationHistory has {len(simulation_history.data)} samples")
     return simulation_history
 
 

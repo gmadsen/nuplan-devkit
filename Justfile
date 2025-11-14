@@ -165,6 +165,46 @@ dataset-info:
     @uv run python -c "import os; root=os.getenv('NUPLAN_MAPS_ROOT', 'Not set'); print(f'NUPLAN_MAPS_ROOT: {root}')"
     @uv run python -c "import os; root=os.getenv('NUPLAN_EXP_ROOT', 'Not set'); print(f'NUPLAN_EXP_ROOT: {root}')"
 
+# Explore full nuPlan dataset structure (all train/val/test splits)
+explore:
+    @echo "🔍 Exploring nuPlan dataset structure..."
+    uv run nuplan_cli explore datasets
+
+# Explore sensor blob zips available in S3 (scrape actual file list)
+explore-sensors set="mini":
+    @echo "🔍 Exploring sensor blob zips for {{set}}_set..."
+    uv run nuplan_cli explore sensors --sensor-set={{set}}
+
+# Show dataset inventory (local vs remote)
+inventory *args:
+    @echo "📦 Dataset Inventory:"
+    uv run nuplan_cli inventory main {{args}}
+
+# Show which logs have sensor blobs
+inventory-logs *args:
+    @echo "📦 Sensor Blob Status:"
+    uv run nuplan_cli inventory logs {{args}}
+
+# Map log or DB file to required sensor blob zips
+map-log log_name:
+    @echo "🗺️  Mapping log to sensor blob zips:"
+    uv run nuplan_cli map log {{log_name}}
+
+# Map DB files to required sensor blob zips
+map-db *db_files:
+    @echo "🗺️  Mapping DB files to sensor blob zips:"
+    uv run nuplan_cli map db {{db_files}}
+
+# Generate download commands for tutorial sensor blobs (camera_0 + lidar_0)
+download-tutorial:
+    @echo "📥 Generating download commands for tutorial sensor blobs..."
+    uv run nuplan_cli download mini --camera=0 --lidar=0
+
+# Generate download commands for custom sensor sets
+download-sensors camera="" lidar="":
+    @echo "📥 Generating download commands for sensor blobs..."
+    uv run nuplan_cli download mini {{ if camera != "" { "--camera=" + camera } else { "" } }} {{ if lidar != "" { "--lidar=" + lidar } else { "" } }}
+
 # Interactive Python shell with nuPlan loaded
 shell:
     @echo "🐍 Starting Python shell with nuPlan..."
@@ -184,11 +224,11 @@ docs-serve:
 # Train a raster model (full tutorial training)
 train:
     @echo "🚗 Training raster model (10 epochs, 500 scenarios)..."
-    @echo "   Output: /tmp/tutorial_nuplan_framework/training_raster_experiment/"
-    @echo "   Monitor: tail -f /tmp/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/*/log.txt"
+    @echo "   Output: $${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/tutorial_nuplan_framework/training_raster_experiment/"
+    @echo "   Monitor: tail -f $${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/*/log.txt"
     uv run python nuplan/planning/script/run_training.py \
-        group=/tmp/tutorial_nuplan_framework \
-        cache.cache_path=/tmp/tutorial_nuplan_framework/cache \
+        group=$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/tutorial_nuplan_framework \
+        cache.cache_path=$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/cache \
         experiment_name=training_raster_experiment \
         job_name=train_default_raster \
         py_func=train \
@@ -204,8 +244,8 @@ train:
 train-quick:
     @echo "🚗 Quick training (3 epochs, 100 scenarios)..."
     uv run python nuplan/planning/script/run_training.py \
-        group=/tmp/tutorial_nuplan_framework \
-        cache.cache_path=/tmp/tutorial_nuplan_framework/cache \
+        group=$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/tutorial_nuplan_framework \
+        cache.cache_path=$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/cache \
         experiment_name=training_raster_quick \
         job_name=train_quick \
         py_func=train \
@@ -222,7 +262,7 @@ simulate:
     @echo "🎮 Running simulation with simple planner..."
     uv run python nuplan/planning/script/run_simulation.py \
         experiment_name=simulation_simple_experiment \
-        group=/tmp/tutorial_nuplan_framework \
+        group=$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}/tutorial_nuplan_framework \
         planner=simple_planner \
         +simulation=open_loop_boxes \
         scenario_builder=nuplan_mini \
@@ -235,11 +275,13 @@ simulate-ml checkpoint="":
     #!/usr/bin/env bash
     set -euo pipefail
 
+    EXP_ROOT="${NUPLAN_EXP_ROOT:-$HOME/nuplan/exp}"
+
     if [ -z "{{checkpoint}}" ]; then
         echo "🔍 No checkpoint specified, finding most recent..."
-        CHECKPOINT=`find /tmp/tutorial_nuplan_framework/training_raster_experiment -name "*.ckpt" -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1`
+        CHECKPOINT=`find "$EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment" -name "*.ckpt" -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1`
         if [ -z "$CHECKPOINT" ]; then
-            echo "❌ No checkpoints found in /tmp/tutorial_nuplan_framework/training_raster_experiment/"
+            echo "❌ No checkpoints found in $EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment/"
             echo "   Run 'just train' first to create a checkpoint"
             exit 1
         fi
@@ -254,7 +296,7 @@ simulate-ml checkpoint="":
     # Ray's uv integration creates minimal venvs without extras like torch-cuda11
     .venv/bin/python nuplan/planning/script/run_simulation.py \
         experiment_name=simulation_raster_experiment \
-        group=/tmp/tutorial_nuplan_framework \
+        group="$EXP_ROOT/tutorial_nuplan_framework" \
         planner=ml_planner \
         model=raster_model \
         planner.ml_planner.model_config=\${model} \
@@ -280,9 +322,10 @@ nuboard *paths:
 # Monitor training progress (follows log file)
 train-monitor:
     @echo "👀 Monitoring training logs..."
-    @LOG_FILE=$$(ls -t /tmp/tutorial_nuplan_framework/training_raster_experiment/train_*/*/log.txt 2>/dev/null | head -1); \
+    @EXP_ROOT="$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}"; \
+    LOG_FILE=$$(ls -t "$$EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment/train_*/*/log.txt" 2>/dev/null | head -1); \
     if [ -z "$$LOG_FILE" ]; then \
-        echo "❌ No training logs found in /tmp/tutorial_nuplan_framework/training_raster_experiment/"; \
+        echo "❌ No training logs found in $$EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment/"; \
         exit 1; \
     else \
         echo "   Following: $$LOG_FILE"; \
@@ -292,7 +335,8 @@ train-monitor:
 # Launch TensorBoard for training visualization
 tensorboard:
     @echo "📈 Launching TensorBoard..."
-    @LATEST_RUN=$$(ls -td /tmp/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/*/ 2>/dev/null | head -1); \
+    @EXP_ROOT="$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}"; \
+    LATEST_RUN=$$(ls -td "$$EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment/train_default_raster/"*/ 2>/dev/null | head -1); \
     if [ -z "$$LATEST_RUN" ]; then \
         echo "❌ No training runs found"; \
         exit 1; \
@@ -304,27 +348,32 @@ tensorboard:
 
 # List available model checkpoints
 checkpoints:
-    @echo "📦 Available model checkpoints:"
-    @find /tmp/tutorial_nuplan_framework/training_raster_experiment -name "*.ckpt" -type f 2>/dev/null | \
+    #!/usr/bin/env bash
+    echo "📦 Available model checkpoints:"
+    EXP_ROOT="${NUPLAN_EXP_ROOT:-$HOME/nuplan/exp}"
+    find "$EXP_ROOT/tutorial_nuplan_framework/training_raster_experiment" -name "*.ckpt" -type f 2>/dev/null | \
         while read ckpt; do \
-            size=$$(du -h "$$ckpt" | cut -f1); \
-            echo "   [$$size] $$ckpt"; \
+            size=$(du -h "$ckpt" | cut -f1); \
+            echo "   [$size] $ckpt"; \
         done || echo "   No checkpoints found"
 
 # Clean up temp directories (Ray sessions, stale cache)
 clean-tmp:
     @echo "🧹 Cleaning up temp directories..."
-    @echo "📊 Before cleanup:"
-    @du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"
-    @du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"
-    @echo ""
-    @echo "🗑️  Removing Ray sessions..."
-    @rm -rf ~/.tmp/ray/session-* 2>/dev/null || true
-    @rm -rf /tmp/ray/session-* 2>/dev/null || true
-    @echo "🗑️  Removing old nuPlan cache (>30 days)..."
-    @find /tmp/tutorial_nuplan_framework/cache -mtime +30 -type f -delete 2>/dev/null || true
-    @echo ""
-    @echo "📊 After cleanup:"
-    @du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"
-    @du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"
-    @echo "✓ Cleanup complete!"
+    @EXP_ROOT="$${NUPLAN_EXP_ROOT:-$$HOME/nuplan/exp}"; \
+    echo "📊 Before cleanup:"; \
+    du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"; \
+    du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"; \
+    du -sh "$$EXP_ROOT/cache" 2>/dev/null || echo "   $$EXP_ROOT/cache: not found"; \
+    echo ""; \
+    echo "🗑️  Removing Ray sessions..."; \
+    rm -rf ~/.tmp/ray/session-* 2>/dev/null || true; \
+    rm -rf /tmp/ray/session-* 2>/dev/null || true; \
+    echo "🗑️  Removing old nuPlan cache (>30 days)..."; \
+    find "$$EXP_ROOT/cache" -mtime +30 -type f -delete 2>/dev/null || true; \
+    echo ""; \
+    echo "📊 After cleanup:"; \
+    du -sh ~/.tmp 2>/dev/null || echo "   ~/.tmp: not found"; \
+    du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"; \
+    du -sh "$$EXP_ROOT/cache" 2>/dev/null || echo "   $$EXP_ROOT/cache: not found"; \
+    echo "✓ Cleanup complete!"

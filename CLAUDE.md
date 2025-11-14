@@ -30,6 +30,12 @@ just setup                    # Full dev environment with CUDA
 just setup-env               # Create .env file from template
 source .env                  # Load dataset paths
 
+# Dataset management (NEW!)
+just explore                  # Show full dataset structure (train/val/test)
+just inventory                # Check what's downloaded locally
+just map-log <log_name>       # Find which sensor zips you need
+just download-tutorial        # Generate download scripts for tutorial
+
 # Daily workflow
 just tutorial                # Launch Jupyter Lab for tutorials
 just notebook <name>         # Open specific tutorial
@@ -374,31 +380,187 @@ uv run python -c "from PIL import Image; print(hasattr(Image, 'ANTIALIAS'))"  # 
 
 ## Dataset Management
 
-### Dataset Download
+### NEW: Enhanced CLI Tools
+
+nuPlan now has comprehensive dataset management CLI tools for inventory, mapping, and downloads!
+
+**Dataset Inventory** - See what you have vs what's available:
 ```bash
-# Full dataset (~10TB) - requires registration at nuscenes.org/nuplan
-uv run nuplan_cli download --version v1.1 --data_root $NUPLAN_DATA_ROOT
+# Show all datasets (local vs remote)
+just inventory
+# or
+uv run nuplan_cli inventory main
 
-# Mini dataset (~50GB) - good for tutorials
-uv run nuplan_cli download --mini --data_root $NUPLAN_DATA_ROOT
+# Show only sensor blobs
+uv run nuplan_cli inventory main --sensors
 
-# Maps only
-uv run nuplan_cli download --maps_only --data_root $NUPLAN_MAPS_ROOT
+# Show only missing files
+uv run nuplan_cli inventory main --missing
+
+# Show which logs have sensor data
+just inventory-logs
+# or
+uv run nuplan_cli inventory logs
+
+# Show only logs missing sensor data
+uv run nuplan_cli inventory logs --missing
+```
+
+**Map Scenarios to Downloads** - Find which sensor zips you need:
+```bash
+# Map a specific log to required sensor blob zips
+just map-log 2021.05.12.22.00.38_veh-35_01008_01518
+# or
+uv run nuplan_cli map log 2021.05.12.22.00.38_veh-35_01008_01518
+
+# Map DB files to required sensor zips
+just map-db /path/to/splits/mini/*.db --summary
+# or
+uv run nuplan_cli map db /path/to/splits/mini/*.db --summary
+```
+
+**Generate Download Commands** - Get ready-to-run download scripts:
+```bash
+# Generate download commands for tutorial sensor blobs (camera_0 + lidar_0)
+just download-tutorial
+
+# Generate download commands for specific sensor sets
+just download-sensors camera="0,1" lidar="0,1"
+# or
+uv run nuplan_cli download mini --camera=0,1 --lidar=0,1
+
+# The CLI will generate both wget and aria2c scripts for you!
+# Scripts are saved to $NUPLAN_DATA_ROOT/download_nuplan_*.sh
+# Just run the generated script to download
+```
+
+### Dataset Download (Legacy/Manual)
+
+**Option 1: Use the enhanced CLI (recommended)**
+```bash
+# For tutorial (camera_0 + lidar_0 = ~410 GB)
+just download-tutorial
+# This generates download_nuplan_aria2c.sh
+# Then run: ./download_nuplan_aria2c.sh
+```
+
+**Option 2: Use the bash script (full automation)**
+```bash
+# Mini dataset with all sensor blobs (~50GB base + sensors)
+./nuplan_mini_dl.sh
+
+# Check download status
+./nuplan_mini_dl.sh status
+```
+
+**Option 3: Manual download from S3**
+```bash
+# Base URLs
+BASE="https://motional-nuplan.s3-ap-northeast-1.amazonaws.com/public/nuplan-v1.1"
+
+# Database (8 GB)
+wget -c "$BASE/nuplan-v1.1_mini.zip"
+
+# Maps (927 MB)
+wget -c "$BASE/nuplan-maps-v1.1.zip"
+
+# Sensor blobs (camera_0 = ~350 GB, lidar_0 = ~60 GB)
+wget -c "$BASE/sensor_blobs/mini_set/nuplan-v1.1_mini_camera_0.zip"
+wget -c "$BASE/sensor_blobs/mini_set/nuplan-v1.1_mini_lidar_0.zip"
 ```
 
 ### Dataset Structure
+
+**Complete nuPlan v1.1 Dataset Organization:**
+
+The full nuPlan dataset consists of multiple splits across 4 cities:
+
+```bash
+# Explore the full dataset structure
+just explore
+# or
+uv run nuplan_cli explore datasets
+```
+
+**Database Splits (SQLite DBs):**
+- `nuplan-v1.1_mini.zip` (~8 GB) - Mini dataset for tutorials
+- `nuplan-v1.1_test.zip` - Test set for final evaluation
+- `nuplan-v1.1_val.zip` - Validation set for hyperparameter tuning
+- `nuplan-v1.1_train_boston.zip` - Training data from Boston
+- `nuplan-v1.1_train_pittsburgh.zip` - Training data from Pittsburgh
+- `nuplan-v1.1_train_singapore.zip` - Training data from Singapore
+- `nuplan-v1.1_train_vegas_{1-6}.zip` - Training data from Las Vegas (6 splits)
+
+**Sensor Blobs Organization (Folders containing numbered zip collections):**
+
+⚠️ **Important:** Sensor blobs are numbered **sequentially**, NOT organized by city!
+Database files are split by city (boston, pittsburgh, vegas_1-6, etc.) but sensor blobs are just numbered 0..N.
+
+- 📁 `sensor_blobs/mini_set/` - **18 sensor zips** for mini dataset
+  - 9 camera: `nuplan-v1.1_mini_camera_{0-8}.zip` (~350 GB each)
+  - 9 lidar: `nuplan-v1.1_mini_lidar_{0-8}.zip` (~60 GB each)
+  - Plus: `public_set_mini_sensor.txt`
+  - **Total: ~3.6 TB**
+
+- 📁 `sensor_blobs/train_set/` - **86 sensor zips** for training
+  - 43 camera: `nuplan-v1.1_train_camera_{0-42}.zip`
+  - 43 lidar: `nuplan-v1.1_train_lidar_{0-42}.zip`
+  - Plus: `public_set_train_sensor.txt`
+  - **Total: ~??? TB** (likely 7-8 TB)
+
+- 📁 `sensor_blobs/val_set/` - **22 sensor zips** for validation
+  - 11 camera: `nuplan-v1.1_val_camera_{0-10}.zip`
+  - 11 lidar: `nuplan-v1.1_val_lidar_{0-10}.zip`
+  - Plus: `public_set_val_sensor.txt`
+  - **Total: ~??? TB**
+
+- 📁 `sensor_blobs/test_set/` - **18 sensor zips** for testing
+  - 9 camera: `nuplan-v1.1_test_camera_{0-8}.zip`
+  - 9 lidar: `nuplan-v1.1_test_lidar_{0-8}.zip`
+  - Plus: `public_set_test_sensor.txt`
+  - **Total: ~??? TB**
+
+**Grand Total Sensor Blobs:** 144 zip files across all sets!
+- Mini: 18 zips
+- Train: 86 zips
+- Val: 22 zips
+- Test: 18 zips
+
+**Local Directory Structure:**
 ```
 $NUPLAN_DATA_ROOT/
-├── nuplan.db                    # Main SQLite database (scenarios, logs)
-├── maps/                        # Map data (if not in NUPLAN_MAPS_ROOT)
-│   ├── nuplan-maps-v1.0.json   # Map metadata
-│   ├── sg-one-north/           # Singapore
-│   ├── us-nv-las-vegas/        # Las Vegas
-│   ├── us-pa-pittsburgh/       # Pittsburgh
-│   └── us-ma-boston/           # Boston
-└── sensor_blobs/                # Sensor data (images, lidar)
-    └── 2021.XX.XX.XX.XX.XX/    # Timestamped logs
+├── nuplan-v1.1/
+│   ├── splits/
+│   │   ├── mini/              # 64 DB files (mini dataset)
+│   │   ├── test/              # Test scenario DBs
+│   │   ├── val/               # Validation scenario DBs
+│   │   └── train/             # Training scenario DBs
+│   └── sensor_blobs/          # Extracted sensor data
+│       ├── 2021.05.*.../      # Log directories (timestamped)
+│       │   ├── CAM_F0/        # Front camera
+│       │   ├── CAM_B0/        # Back camera
+│       │   ├── CAM_L{0,1,2}/  # Left cameras
+│       │   ├── CAM_R{0,1,2}/  # Right cameras
+│       │   └── MergedPointCloud/  # LiDAR point clouds
+│       └── ...
+├── maps/                      # Map data (if not in NUPLAN_MAPS_ROOT)
+│   ├── nuplan-maps-v1.1.json  # Map metadata
+│   ├── sg-one-north/          # Singapore
+│   ├── us-nv-las-vegas/       # Las Vegas
+│   ├── us-pa-pittsburgh/      # Pittsburgh
+│   └── us-ma-boston/          # Boston
+└── nuplan-maps-v1.1.zip       # Maps zip (927 MB)
 ```
+
+**Total Dataset Size:**
+- Mini dataset: ~8 GB (DB) + ~3.3 TB (sensors) = ~3.3 TB
+- Full dataset: **~10-15 TB** (all train/val/test splits with sensors)
+
+**Cities & Driving Conditions:**
+- 🌆 **Boston** (US-MA): Urban, snow, complex intersections
+- 🌆 **Pittsburgh** (US-PA): Hilly terrain, bridges, tunnels
+- 🏙️  **Las Vegas** (US-NV): Wide roads, desert, strip traffic
+- 🌏 **Singapore**: Tropical, left-hand driving, dense urban
 
 ### Cache Management
 ```bash
