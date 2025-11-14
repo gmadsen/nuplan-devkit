@@ -51,11 +51,22 @@ def initialize_ray(
     if not number_of_gpus_per_node:
         logger.info("Not using GPU in ray")
 
+    # AIDEV-NOTE: Propagate nuPlan environment variables to Ray workers
+    # Ray workers spawn separate processes and don't inherit env vars automatically
+    runtime_env = {
+        "env_vars": {
+            key: os.environ[key]
+            for key in ["NUPLAN_DATA_ROOT", "NUPLAN_MAPS_ROOT", "NUPLAN_EXP_ROOT", "NUPLAN_DATA_STORE", "NUPLAN_TEST_MAPS_VERSION"]
+            if key in os.environ
+        }
+    }
+    logger.info(f"Ray runtime environment variables: {runtime_env['env_vars'].keys()}")
+
     # Find a way in how the ray should be initialized
     if master_node_ip and use_distributed:
         # Connect to ray remotely to node ip
         logger.info(f'Connecting to cluster at: {master_node_ip}!')
-        ray.init(address=f'ray://{master_node_ip}:10001', local_mode=local_mode, log_to_driver=log_to_driver)
+        ray.init(address=f'ray://{master_node_ip}:10001', local_mode=local_mode, log_to_driver=log_to_driver, runtime_env=runtime_env)
         number_of_nodes = 1
     elif env_var_master_node_ip in os.environ and use_distributed:
         # In this way, we started ray on the current machine which generated password and master node ip:
@@ -71,6 +82,7 @@ def initialize_ray(
             _redis_password=redis_password,
             log_to_driver=log_to_driver,
             local_mode=local_mode,
+            runtime_env=runtime_env,
         )
     else:
         # In this case, we will just start ray directly from this script
@@ -81,6 +93,7 @@ def initialize_ray(
             dashboard_host='0.0.0.0',
             local_mode=local_mode,
             log_to_driver=log_to_driver,
+            runtime_env=runtime_env,
         )
 
     return WorkerResources(

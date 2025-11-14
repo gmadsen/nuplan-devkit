@@ -153,6 +153,11 @@ smoke-test:
     @uv run python -c "import torch; assert torch.cuda.is_available(), 'CUDA not available!'; print('✓ CUDA is available')"
     @echo "✓ Smoke test passed!"
 
+# Comprehensive health check of the environment
+health:
+    @echo "🏥 Running comprehensive health check..."
+    uv run python scripts/health_check.py
+
 # Show dataset statistics (if dataset is available)
 dataset-info:
     @echo "📊 Dataset Information:"

@@ -32,3 +32,5 @@ _ext
 .pytest_cache/*
 docs/_build/
 docs/generated/
+
+.env
