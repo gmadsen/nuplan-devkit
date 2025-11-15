@@ -8,13 +8,14 @@
 
 ## Progress Tracker
 
-**Completed**: 11 / 113 directories (9.7%)
+**Completed**: 19 / 113 directories (16.8%)
 **In Progress**: 0
-**Remaining**: 102
+**Remaining**: 94
 
 **Session 1 Complete**: Phase 1A production code (7 dirs) ✅
 **Session 2 Complete**: Phase 1B + 1C production code (4 dirs) ✅
-**Next Session**: Phase 2A + 2B simulation infrastructure
+**Session 3 Batch 1 Complete**: Phase 2A + path/occupancy_map (8 dirs) ✅
+**Next Session**: Phase 2B remaining + Phase 2C
 
 ---
 
@@ -65,12 +66,12 @@
 **Priority**: Core simulation loop components
 
 ### Phase 2A: Observation & Input (6 dirs)
-- [ ] `nuplan/planning/simulation/observation/`
-- [ ] `nuplan/planning/simulation/observation/idm/`
-- [ ] `nuplan/planning/simulation/observation/test/`
-- [ ] `nuplan/planning/simulation/history/`
-- [ ] `nuplan/planning/simulation/history/test/`
-- [ ] `nuplan/planning/simulation/simulation_time_controller/`
+- [x] `nuplan/planning/simulation/observation/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/observation/idm/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/observation/test/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/history/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/history/test/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/simulation_time_controller/` ✅ **Session 3 Batch 1**
 
 ### Phase 2B: Control & Motion (10 dirs)
 - [ ] `nuplan/planning/simulation/controller/`
@@ -79,8 +80,8 @@
 - [ ] `nuplan/planning/simulation/controller/tracker/ilqr/`
 - [ ] `nuplan/planning/simulation/controller/tracker/lqr/`
 - [ ] `nuplan/planning/simulation/controller/test/`
-- [ ] `nuplan/planning/simulation/path/`
-- [ ] `nuplan/planning/simulation/occupancy_map/`
+- [x] `nuplan/planning/simulation/path/` ✅ **Session 3 Batch 1**
+- [x] `nuplan/planning/simulation/occupancy_map/` ✅ **Session 3 Batch 1**
 - [ ] `nuplan/planning/simulation/predictor/`
 - [ ] `nuplan/planning/simulation/predictor/test/`
 
@@ -235,16 +236,21 @@
 - [x] Phase 1B + 1C: Production code (4/4 dirs)
 - **Delivered**: ml_planner (697 lines), scenario_builder (643 lines), scenario_builder/nuplan_db, database/nuplan_db_orm
 - **Quality**: Tier 1 deep-dive (10+ gotchas each, code examples, cross-references)
-- **Commit**: TBD - "Add Tier 1 documentation for Phase 1B + 1C"
+- **Commit**: 114b906 - "Add Tier 1 documentation for Phase 1B + 1C"
 
-### Session 3 (NEXT)
-- Target: Complete Phase 2A + 2B (Simulation I/O and Control)
-- **Scope**: ~16 directories
-  - observation/, observation/idm/, history/, simulation_time_controller/
-  - controller/, controller/motion_model/, controller/tracker/*, path/, occupancy_map/, predictor/
+### Session 3 Batch 1 ✅ COMPLETE (2025-11-15)
+- [x] Phase 2A (all 6 dirs) + path/occupancy_map from Phase 2B (8 total)
+- **Delivered**: observation (856 lines), observation/idm (199), observation/test (440), history (460), history/test (402), simulation_time_controller (481), path (538), occupancy_map (572)
+- **Total**: 3,748 lines across 8 CLAUDE.md files
+- **Strategy**: 8 parallel technical-writer agents (sonnet model)
+- **Quality**: Tier 2 deep-dive (10+ gotchas, code examples, cross-references)
+- **Commit**: TBD - "Add Session 3 Batch 1 documentation (Phase 2A + path/occupancy_map)"
 
-### Session 3
-- Target: Phase 2A + 2B (Simulation I/O and control)
+### Session 3 Batch 2 (NEXT)
+- Target: Phase 2B remaining (6 dirs) + Phase 2C partial
+- **Remaining Phase 2B**: controller/, controller/motion_model/, controller/tracker/, controller/tracker/ilqr/, controller/tracker/lqr/, controller/test/, predictor/, predictor/test/ (8 dirs)
+- **Phase 2C candidates**: callback/, simulation/ (2 dirs core, defer test dirs)
+- **Strategy**: Continue 8x parallel agents with improved output handling
 
 ### Session 4
 - Target: Phase 2C (Simulation execution) - Tier 2 finish
@@ -291,8 +297,15 @@ Sections required:
 
 ---
 
-**Last Updated**: 2025-11-15 (Session 2 complete)
-**Current Session**: 3 (next)
-**Next Target**: Phase 2A + 2B simulation infrastructure (~16 dirs)
+**Last Updated**: 2025-11-15 (Session 3 Batch 1 complete)
+**Current Progress**: 19/113 directories (16.8%)
+**Completed Sessions**:
+- Session 1: 7 dirs (Phase 1A)
+- Session 2: 4 dirs (Phase 1B+1C)
+- Session 3 Batch 1: 8 dirs (Phase 2A + path/occupancy_map)
+**Next Session**: Session 3 Batch 2 - Phase 2B remaining (8 dirs)
 **Test Dirs**: Deferred to Phase 1D (after all production code documented)
-**Progress**: Tier 1 production code 100% complete! (10/10 dirs)
+**Milestones**:
+- ✅ Tier 1 production code 100% complete! (10/10 dirs)
+- ✅ Phase 2A 100% complete! (6/6 dirs)
+- ⏳ Phase 2B 20% complete (2/10 dirs: path, occupancy_map)
