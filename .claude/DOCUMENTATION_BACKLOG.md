@@ -8,12 +8,13 @@
 
 ## Progress Tracker
 
-**Completed**: 7 / 113 directories (6.2%)
+**Completed**: 11 / 113 directories (9.7%)
 **In Progress**: 0
-**Remaining**: 106
+**Remaining**: 102
 
 **Session 1 Complete**: Phase 1A production code (7 dirs) ✅
-**Next Session**: Phase 1B + 1C core abstractions
+**Session 2 Complete**: Phase 1B + 1C production code (4 dirs) ✅
+**Next Session**: Phase 2A + 2B simulation infrastructure
 
 ---
 
@@ -33,17 +34,17 @@
 
 ### Phase 1B: Core Planning Abstractions (7 dirs)
 - [x] `nuplan/planning/simulation/planner/` ✅ **Session 1**
-- [ ] `nuplan/planning/simulation/planner/ml_planner/` ← **Session 2 START**
+- [x] `nuplan/planning/simulation/planner/ml_planner/` ✅ **Session 2**
 - [ ] `nuplan/planning/simulation/planner/test/` (DEFERRED to Phase 1D)
 - [x] `nuplan/planning/simulation/trajectory/` ✅ **Session 1**
 - [ ] `nuplan/planning/simulation/trajectory/test/` (DEFERRED to Phase 1D)
-- [ ] `nuplan/planning/scenario_builder/`
-- [ ] `nuplan/planning/scenario_builder/nuplan_db/`
+- [x] `nuplan/planning/scenario_builder/` ✅ **Session 2**
+- [x] `nuplan/planning/scenario_builder/nuplan_db/` ✅ **Session 2**
 
 ### Phase 1C: Supporting Infrastructure (3 dirs)
 - [x] `nuplan/common/utils/` ✅ **Session 1**
 - [ ] `nuplan/common/utils/test_utils/` (DEFERRED to Phase 1D)
-- [ ] `nuplan/database/nuplan_db_orm/`
+- [x] `nuplan/database/nuplan_db_orm/` ✅ **Session 2**
 
 ### Phase 1D: Test Directories (8 dirs - DEFERRED)
 - [ ] `nuplan/common/actor_state/test/`
@@ -230,13 +231,17 @@
 - **Deferred**: 5 test directories to Phase 1D
 - **Commit**: 92d23ea - "Add comprehensive CLAUDE.md documentation for Phase 1A foundations"
 
-### Session 2 (NEXT)
-- Target: Complete Phase 1B + 1C production code
-- **Scope**: 3 remaining Tier 1 production directories
-  - planner/ml_planner/
-  - scenario_builder/
-  - scenario_builder/nuplan_db/
-  - database/nuplan_db_orm/
+### Session 2 ✅ COMPLETE (2025-11-15)
+- [x] Phase 1B + 1C: Production code (4/4 dirs)
+- **Delivered**: ml_planner (697 lines), scenario_builder (643 lines), scenario_builder/nuplan_db, database/nuplan_db_orm
+- **Quality**: Tier 1 deep-dive (10+ gotchas each, code examples, cross-references)
+- **Commit**: TBD - "Add Tier 1 documentation for Phase 1B + 1C"
+
+### Session 3 (NEXT)
+- Target: Complete Phase 2A + 2B (Simulation I/O and Control)
+- **Scope**: ~16 directories
+  - observation/, observation/idm/, history/, simulation_time_controller/
+  - controller/, controller/motion_model/, controller/tracker/*, path/, occupancy_map/, predictor/
 
 ### Session 3
 - Target: Phase 2A + 2B (Simulation I/O and control)
@@ -286,7 +291,8 @@ Sections required:
 
 ---
 
-**Last Updated**: 2025-11-15 (Session 1 complete)
-**Current Session**: 2 (next)
-**Next Target**: Phase 1B + 1C production code (4 dirs)
+**Last Updated**: 2025-11-15 (Session 2 complete)
+**Current Session**: 3 (next)
+**Next Target**: Phase 2A + 2B simulation infrastructure (~16 dirs)
 **Test Dirs**: Deferred to Phase 1D (after all production code documented)
+**Progress**: Tier 1 production code 100% complete! (10/10 dirs)
