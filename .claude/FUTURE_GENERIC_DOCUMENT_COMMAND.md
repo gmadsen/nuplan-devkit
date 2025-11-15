@@ -92,15 +92,42 @@ Start at project root:
    - Agents consistently exceed minimums (e.g., 24 gotchas delivered)
    - Sonnet model = optimal quality/speed trade-off
 
-3. **Parallel execution scales**
-   - 8 agents tested successfully (Session 3 Batch 1)
+3. **Parallel execution scales - WITH HARD LIMITS** ⚠️
+   - ✅ 8 agents: Proven reliable (Sessions 3-4, 100% success)
+   - ❌ 12 agents: Complete failure (all timeouts, Session 4)
+   - ❌ 16 agents: Complete failure (all timeouts, Session 4)
+   - **DISCOVERED LIMIT**: 8-12 concurrent Task tool invocations maximum
+   - **SAFE MAXIMUM**: 8 agents per batch (validated)
    - Token budget: ~50K for 8 agents (vs ~150K old way)
-   - 100% success rate (no timeouts, all quality)
 
 4. **Summaries provide value**
    - 3-5 key highlights capture architectural insights
    - Warnings/TODOs surfaced without reading full docs
    - Cross-reference summaries useful for dependency tracking
+
+### Critical Infrastructure Constraint (Session 4 Discovery)
+
+**Task Tool Concurrency Limit Identified via Binary Search**:
+
+| Test | Agents | Result | Token Usage | Evidence |
+|------|--------|--------|-------------|----------|
+| Sessions 3-4 | 8 | ✅ Success | ~50-80K | Multiple successful runs |
+| Session 4 | 12 | ❌ Timeout | ~2K | All agents failed |
+| Session 4 | 16 | ❌ Timeout | ~5K | All agents failed |
+
+**Failure Pattern**:
+- Uniform "Request timed out" errors across all agents
+- Minimal token consumption (agents never execute)
+- No partial successes or graceful degradation
+- Infrastructure-level rejection at task scheduler
+
+**Root Cause**: Hard concurrency quota between 8-12 simultaneous Task tool invocations
+
+**Practical Implications for `/document` Command**:
+- **Maximum safe batch**: 8 agents
+- **Recommended default**: 6-8 agents (with safety margin)
+- **Large documentation sets**: Must use sequential batching
+- **Example**: 24 files = 3 batches of 8 agents each
 
 ### Open Questions ❓
 
@@ -109,10 +136,11 @@ Start at project root:
    - Document both in same batch?
    - Special "dependency cycle" section?
 
-2. **Optimal batch size for depth-first**
-   - Process all children of X in one batch?
-   - What if X has 20 children (too many)?
-   - Dynamic batching based on directory fan-out?
+2. ~~**Optimal batch size for depth-first**~~ ✅ **ANSWERED**
+   - ~~Process all children of X in one batch?~~
+   - ~~What if X has 20 children (too many)?~~
+   - **Answer**: Split into batches of ≤8 directories
+   - **Solution**: Sequential batching for large directory sets
 
 3. **Bubbling up insights**
    - How do parent docs incorporate child summaries?
