@@ -8,9 +8,12 @@
 
 ## Progress Tracker
 
-**Completed**: 3 / 105 directories (2.9%)
+**Completed**: 7 / 113 directories (6.2%)
 **In Progress**: 0
-**Remaining**: 102
+**Remaining**: 106
+
+**Session 1 Complete**: Phase 1A production code (7 dirs) ✅
+**Next Session**: Phase 1B + 1C core abstractions
 
 ---
 
@@ -19,30 +22,40 @@
 **Priority**: MUST complete first - everything depends on these
 
 ### Phase 1A: Foundation - Common Infrastructure (8 dirs)
-- [x] `nuplan/common/actor_state/` ✅ **DONE**
-- [ ] `nuplan/common/actor_state/test/` (Major test dir)
-- [ ] `nuplan/common/geometry/`
-- [ ] `nuplan/common/geometry/test/`
-- [ ] `nuplan/common/maps/`
-- [ ] `nuplan/common/maps/test/`
-- [ ] `nuplan/common/maps/nuplan_map/`
-- [ ] `nuplan/common/maps/nuplan_map/test/`
+- [x] `nuplan/common/actor_state/` ✅ **Session 1**
+- [ ] `nuplan/common/actor_state/test/` (DEFERRED to Phase 1D)
+- [x] `nuplan/common/geometry/` ✅ **Session 1**
+- [ ] `nuplan/common/geometry/test/` (DEFERRED to Phase 1D)
+- [x] `nuplan/common/maps/` ✅ **Session 1**
+- [ ] `nuplan/common/maps/test/` (DEFERRED to Phase 1D)
+- [x] `nuplan/common/maps/nuplan_map/` ✅ **Session 1**
+- [ ] `nuplan/common/maps/nuplan_map/test/` (DEFERRED to Phase 1D)
 
 ### Phase 1B: Core Planning Abstractions (7 dirs)
-- [x] `nuplan/planning/simulation/planner/` ✅ **DONE**
-- [ ] `nuplan/planning/simulation/planner/ml_planner/`
-- [ ] `nuplan/planning/simulation/planner/test/`
-- [x] `nuplan/planning/simulation/trajectory/` ✅ **DONE**
-- [ ] `nuplan/planning/simulation/trajectory/test/`
+- [x] `nuplan/planning/simulation/planner/` ✅ **Session 1**
+- [ ] `nuplan/planning/simulation/planner/ml_planner/` ← **Session 2 START**
+- [ ] `nuplan/planning/simulation/planner/test/` (DEFERRED to Phase 1D)
+- [x] `nuplan/planning/simulation/trajectory/` ✅ **Session 1**
+- [ ] `nuplan/planning/simulation/trajectory/test/` (DEFERRED to Phase 1D)
 - [ ] `nuplan/planning/scenario_builder/`
 - [ ] `nuplan/planning/scenario_builder/nuplan_db/`
 
 ### Phase 1C: Supporting Infrastructure (3 dirs)
-- [ ] `nuplan/common/utils/`
-- [ ] `nuplan/common/utils/test_utils/`
+- [x] `nuplan/common/utils/` ✅ **Session 1**
+- [ ] `nuplan/common/utils/test_utils/` (DEFERRED to Phase 1D)
 - [ ] `nuplan/database/nuplan_db_orm/`
 
-**TIER 1 SUBTOTAL: 18 directories**
+### Phase 1D: Test Directories (8 dirs - DEFERRED)
+- [ ] `nuplan/common/actor_state/test/`
+- [ ] `nuplan/common/geometry/test/`
+- [ ] `nuplan/common/maps/test/`
+- [ ] `nuplan/common/maps/nuplan_map/test/`
+- [ ] `nuplan/common/utils/test_utils/`
+- [ ] `nuplan/planning/simulation/planner/test/`
+- [ ] `nuplan/planning/simulation/trajectory/test/`
+- [ ] `nuplan/planning/scenario_builder/test/` (also in Phase 4E)
+
+**TIER 1 SUBTOTAL: 18 directories (10 production + 8 test)**
 
 ---
 
@@ -211,12 +224,19 @@
 **Parallelization**: 4-6 agents per session
 **Commit Frequency**: After each phase completion
 
-### Session 1 (Current)
-- [x] Phase 1A: Start (3/8 complete)
-- Target: Complete Phase 1A foundation
+### Session 1 ✅ COMPLETE (2025-11-15)
+- [x] Phase 1A: Production code (7/8 dirs, skipped tests)
+- **Delivered**: actor_state, geometry, maps, nuplan_map, utils, planner, trajectory
+- **Deferred**: 5 test directories to Phase 1D
+- **Commit**: 92d23ea - "Add comprehensive CLAUDE.md documentation for Phase 1A foundations"
 
-### Session 2
-- Target: Complete Phase 1B + 1C (Tier 1 finish)
+### Session 2 (NEXT)
+- Target: Complete Phase 1B + 1C production code
+- **Scope**: 3 remaining Tier 1 production directories
+  - planner/ml_planner/
+  - scenario_builder/
+  - scenario_builder/nuplan_db/
+  - database/nuplan_db_orm/
 
 ### Session 3
 - Target: Phase 2A + 2B (Simulation I/O and control)
@@ -266,6 +286,7 @@ Sections required:
 
 ---
 
-**Last Updated**: 2025-11-15
-**Current Session**: 1
-**Next Target**: Complete Phase 1A (5 remaining directories)
+**Last Updated**: 2025-11-15 (Session 1 complete)
+**Current Session**: 2 (next)
+**Next Target**: Phase 1B + 1C production code (4 dirs)
+**Test Dirs**: Deferred to Phase 1D (after all production code documented)
