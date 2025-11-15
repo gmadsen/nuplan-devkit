@@ -1,0 +1,7 @@
+observation/idm/CLAUDE.md
+observation/test/CLAUDE.md
+history/CLAUDE.md
+history/test/CLAUDE.md
+simulation_time_controller/CLAUDE.md
+path/CLAUDE.md
+occupancy_map/CLAUDE.md

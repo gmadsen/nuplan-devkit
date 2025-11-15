@@ -131,11 +131,16 @@ install-hooks:
     uv run pre-commit install
     @echo "✓ Pre-commit hooks installed!"
 
-# Download nuPlan dataset (requires credentials)
-download-dataset:
-    @echo "📥 Downloading nuPlan dataset..."
+# Download nuPlan datasets (unified flexible command)
+# Examples:
+#   just download --all-db              # All database files (test, val, train)
+#   just download --test --val          # Specific datasets
+#   just download --interactive         # Interactive mode
+#   just download --all-db --extract    # Download and extract
+download *args:
+    @echo "📥 nuPlan Dataset Download Manager"
     @echo "⚠️  Ensure NUPLAN_DATA_ROOT is set in your environment"
-    uv run nuplan_cli download
+    uv run nuplan_cli download datasets {{args}}
 
 # Set up environment variables template
 setup-env:
@@ -195,15 +200,22 @@ map-db *db_files:
     @echo "🗺️  Mapping DB files to sensor blob zips:"
     uv run nuplan_cli map db {{db_files}}
 
-# Generate download commands for tutorial sensor blobs (camera_0 + lidar_0)
+# Download tutorial setup (mini dataset + camera_0 + lidar_0)
 download-tutorial:
-    @echo "📥 Generating download commands for tutorial sensor blobs..."
-    uv run nuplan_cli download mini --camera=0 --lidar=0
+    @echo "📥 Generating download commands for tutorial setup..."
+    @echo "   (mini DB + camera_0 + lidar_0 = ~418 GB)"
+    uv run nuplan_cli download datasets --mini --camera=0 --lidar=0
 
-# Generate download commands for custom sensor sets
-download-sensors camera="" lidar="":
-    @echo "📥 Generating download commands for sensor blobs..."
-    uv run nuplan_cli download mini {{ if camera != "" { "--camera=" + camera } else { "" } }} {{ if lidar != "" { "--lidar=" + lidar } else { "" } }}
+# Download all database files (no sensors) - what most researchers need
+download-db:
+    @echo "📥 Generating download commands for all database files..."
+    @echo "   (test + val + all train splits, no sensors)"
+    uv run nuplan_cli download datasets --all-db
+
+# Interactive download mode - shows table and prompts for selection
+download-interactive:
+    @echo "📥 Starting interactive download mode..."
+    uv run nuplan_cli download datasets --interactive
 
 # Interactive Python shell with nuPlan loaded
 shell:

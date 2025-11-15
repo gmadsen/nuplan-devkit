@@ -1,0 +1,11 @@
+Agent 3 generated a comprehensive CLAUDE.md for nuplan/planning/scenario_builder/nuplan_db/
+The documentation includes complete sections on:
+- Purpose & Responsibility
+- Key Abstractions (NuPlanScenarioBuilder, NuPlanScenario, ScenarioExtractionInfo, ScenarioMapping, etc.)
+- Architecture & Design Patterns (8 patterns documented)
+- Dependencies
+- Critical Files (6 prioritized files)
+- Usage Patterns (3 detailed examples)  
+- 15 Critical Gotchas with solutions
+- Cross-References
+Total size: ~35-40KB of comprehensive documentation

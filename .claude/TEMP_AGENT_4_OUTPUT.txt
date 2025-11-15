@@ -1,0 +1,11 @@
+Agent 4 generated a comprehensive CLAUDE.md for nuplan/database/nuplan_db_orm/
+The documentation includes complete sections on:
+- Purpose & Responsibility  
+- Database Schema Overview (13 tables, relationships diagram)
+- Key Abstractions (NuPlanDB, NuPlanDBWrapper, all ORM models)
+- Critical Files (15 prioritized files)
+- Usage Patterns (7 detailed examples)
+- 18 Critical Gotchas with solutions
+- Dependencies & Dependents
+- Cross-References
+Total size: ~45-50KB of comprehensive documentation
