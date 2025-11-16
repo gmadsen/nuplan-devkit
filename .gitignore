@@ -36,3 +36,7 @@ docs/generated/
 
 .env
 web/node_modules/
+
+# Profiling output (machine-specific, regenerated on-demand)
+profiling_output/
+*.stats
