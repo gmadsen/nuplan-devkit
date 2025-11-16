@@ -217,11 +217,18 @@ Start at project root:
 
 ## Implementation Strategy
 
-### Phase 1: Extract Patterns from nuPlan (Current)
+### Phase 1: Extract Patterns from nuPlan (In Progress)
 - Complete nuPlan documentation (Sessions 4-8)
 - Document all learnings, edge cases, gotchas
 - Measure token efficiency, quality, success rates
 - Identify reusable vs project-specific patterns
+
+**Session 4 Findings** (See `.claude/SESSION4_FINDINGS.md` for full details):
+- ✅ Validated 8-agent parallelization (75% success with simplified prompts)
+- ✅ Discovered 3 failure modes (infrastructure, complexity, generation)
+- ✅ Identified inverse LOC correlation (small dirs fail more!)
+- ✅ Improved success rate from 37% to 75% via prompt simplification
+- ⚠️ Directory pre-assessment needed (LOC thresholds: 100-1500 sweet spot)
 
 ### Phase 2: Design Generic System (Post-nuPlan)
 - Define slash command interface

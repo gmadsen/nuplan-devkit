@@ -8,15 +8,17 @@
 
 ## Progress Tracker
 
-**Completed**: 27 / 113 directories (23.9%)
+**Completed**: 36 / 113 directories (31.9%)
 **In Progress**: 0
-**Remaining**: 86
+**Remaining**: 77
 
 **Session 1 Complete**: Phase 1A production code (7 dirs) ✅
 **Session 2 Complete**: Phase 1B + 1C production code (4 dirs) ✅
 **Session 3 Batch 1 Complete**: Phase 2A + path/occupancy_map (8 dirs) ✅
 **Session 4 Complete**: Phase 2B (8 dirs) ✅
-**Next Session**: Phase 2C (Simulation Execution)
+**Session 5 Batch 1 Complete**: callback/ + metrics + dynamics_layers (3 dirs + 1 enhancement) ✅
+**Session 5 Batch 2 Complete**: Phase 2C complete! (6 dirs) ✅
+**Next Session**: Phase 3A + 3B (Training Infrastructure)
 
 ---
 
@@ -86,15 +88,15 @@
 - [x] `nuplan/planning/simulation/predictor/` ✅ **Session 4**
 - [x] `nuplan/planning/simulation/predictor/test/` ✅ **Session 4**
 
-### Phase 2C: Simulation Execution (8 dirs)
-- [ ] `nuplan/planning/simulation/callback/`
-- [ ] `nuplan/planning/simulation/callback/test/`
-- [ ] `nuplan/planning/simulation/main_callback/`
-- [ ] `nuplan/planning/simulation/main_callback/test/`
-- [ ] `nuplan/planning/simulation/runner/`
-- [ ] `nuplan/planning/simulation/runner/test/`
-- [ ] `nuplan/planning/simulation/visualization/`
-- [ ] `nuplan/planning/simulation/`
+### Phase 2C: Simulation Execution (8 dirs) - ✅ COMPLETE
+- [x] `nuplan/planning/simulation/callback/` ✅ **Session 5 Batch 1**
+- [x] `nuplan/planning/simulation/callback/test/` ✅ **Session 5 Batch 2** (pre-existing)
+- [x] `nuplan/planning/simulation/main_callback/` ✅ **Session 5 Batch 2**
+- [x] `nuplan/planning/simulation/main_callback/test/` ✅ **Session 5 Batch 2** (pre-existing)
+- [x] `nuplan/planning/simulation/runner/` ✅ **Session 5 Batch 2**
+- [x] `nuplan/planning/simulation/runner/test/` ✅ **Session 5 Batch 2** (pre-existing)
+- [x] `nuplan/planning/simulation/visualization/` ✅ **Session 5 Batch 2**
+- [x] `nuplan/planning/simulation/` ✅ **Session 5 Batch 2** (enhanced)
 
 **TIER 2 SUBTOTAL: 24 directories**
 
@@ -106,11 +108,11 @@
 
 ### Phase 3A: Model Architecture (8 dirs)
 - [ ] `nuplan/planning/training/modeling/`
-- [ ] `nuplan/planning/training/modeling/models/`
-- [ ] `nuplan/planning/training/modeling/models/dynamics_layers/`
+- [x] `nuplan/planning/training/modeling/models/` ✅ **Session 5 Batch 1** (enhanced with Urban Driver section)
+- [x] `nuplan/planning/training/modeling/models/dynamics_layers/` ✅ **Session 5 Batch 1**
 - [ ] `nuplan/planning/training/modeling/objectives/`
 - [ ] `nuplan/planning/training/modeling/objectives/test/`
-- [ ] `nuplan/planning/training/modeling/metrics/`
+- [x] `nuplan/planning/training/modeling/metrics/` ✅ **Session 5 Batch 1** (enhanced with 5 additions)
 - [ ] `nuplan/planning/training/modeling/test/`
 - [ ] `nuplan/planning/training/modeling/torch_module_wrapper/`
 
@@ -257,10 +259,24 @@
 - **Innovation**: Direct file-writing pattern validated for production use
 - **Commit**: TBD - "Complete Phase 2B documentation (controller + predictor stack)"
 
-### Session 5 (NEXT)
-- Target: Phase 2C (Simulation execution) - 8 dirs
-- callback/, callback/test/, main_callback/, main_callback/test/, runner/, runner/test/, visualization/, simulation/
-- **Strategy**: Use proven 8x parallel agents with direct file-writing
+### Session 5 Batch 1 ✅ COMPLETE (2025-11-15)
+- [x] Mixed phase completion (3 dirs + 1 enhancement)
+- **Delivered**: callback/ (998 lines), dynamics_layers/ (1450 lines), models/CLAUDE.md enhanced (+390 lines Urban Driver), metrics/CLAUDE.md enhanced (+601 lines)
+- **Total**: 3,439 new/enhanced lines across 3 new + 1 enhanced CLAUDE.md files
+- **Strategy**: 4 parallel technical-writer agents (reduced rate)
+- **Quality**: Tier 2/3 deep-dive (14-15 gotchas per file, comprehensive examples)
+- **Innovation**: Cross-phase efficiency - knocked out high-priority items from multiple phases
+- **Commit**: TBD - "Session 5 Batch 1: callback, dynamics_layers, Urban Driver, enhanced metrics"
+
+### Session 5 Batch 2 ✅ COMPLETE (2025-11-15)
+- [x] Phase 2C COMPLETE! (6 new dirs + 3 pre-existing test dirs + 1 enhancement)
+- **Delivered**: main_callback/ (1376 lines), runner/ (1041 lines), visualization/ (762 lines), simulation/ enhanced (+185 lines)
+- **Pre-existing**: callback/test/ (35780 bytes), main_callback/test/ (38673 bytes), runner/test/ (verified existing)
+- **Total**: 3,364 new/enhanced lines across 3 new + 1 enhanced + 3 pre-existing CLAUDE.md files
+- **Strategy**: 5 parallel technical-writer agents (reduced rate)
+- **Quality**: Tier 2 deep-dive (12-16 gotchas per file)
+- **Achievement**: ✅ TIER 2 100% COMPLETE! All 24 simulation infrastructure dirs documented
+- **Commit**: TBD - "Session 5 Batch 2: Phase 2C complete - simulation execution stack"
 
 ### Session 6
 - Target: Phase 3A + 3B (Training models + data)
@@ -304,17 +320,21 @@ Sections required:
 
 ---
 
-**Last Updated**: 2025-11-15 (Session 4 complete)
-**Current Progress**: 27/113 directories (23.9%)
+**Last Updated**: 2025-11-15 (Session 5 Batch 2 complete)
+**Current Progress**: 36/113 directories (31.9%)
 **Completed Sessions**:
 - Session 1: 7 dirs (Phase 1A)
 - Session 2: 4 dirs (Phase 1B+1C)
 - Session 3 Batch 1: 8 dirs (Phase 2A + path/occupancy_map)
 - Session 4: 8 dirs (Phase 2B complete)
-**Next Session**: Session 5 - Phase 2C (Simulation Execution, 8 dirs)
+- Session 5 Batch 1: 3 dirs + 1 enhancement (callback, dynamics_layers, models, metrics)
+- Session 5 Batch 2: 6 dirs + 1 enhancement (main_callback, runner, visualization, simulation + 3 pre-existing test dirs)
+**Next Session**: Session 6 - Phase 3A + 3B (Training Infrastructure)
 **Test Dirs**: Deferred to Phase 1D (after all production code documented)
 **Milestones**:
 - ✅ Tier 1 production code 100% complete! (10/10 dirs)
 - ✅ Phase 2A 100% complete! (6/6 dirs)
 - ✅ Phase 2B 100% complete! (10/10 dirs)
-- ⏳ Tier 2 67% complete (18/24 dirs, Phase 2C remaining)
+- ✅ Phase 2C 100% complete! (8/8 dirs)
+- ✅ **TIER 2 100% COMPLETE!** (24/24 dirs) 🎉
+- ⏳ Phase 3A 38% complete (3/8 dirs)
