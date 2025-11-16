@@ -389,3 +389,219 @@ clean-tmp:
     du -sh /tmp/ray 2>/dev/null || echo "   /tmp/ray: not found"; \
     du -sh "$$EXP_ROOT/cache" 2>/dev/null || echo "   $$EXP_ROOT/cache: not found"; \
     echo "✓ Cleanup complete!"
+
+# ============================================================
+# Real-Time Visualization (Phase 1: Streaming Callback)
+# ============================================================
+
+# Test streaming visualization callback (without WebSocket server)
+test-streaming-callback:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🎬 Testing streaming visualization callback (no WebSocket server)..."
+    echo "   Expected: Simulation runs successfully, logs WebSocket connection warnings"
+    echo ""
+    EXP_ROOT="${NUPLAN_EXP_ROOT:-$HOME/nuplan/exp}"
+    .venv/bin/python nuplan/planning/script/run_simulation.py \
+        experiment_name=test_streaming_viz \
+        group="$EXP_ROOT/test" \
+        planner=simple_planner \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter=one_of_each_scenario_type \
+        scenario_filter.num_scenarios_per_type=1 \
+        worker=sequential \
+        +callback=streaming_viz_callback
+
+# Profile streaming callback overhead (A/B test with 1 scenario)
+profile-streaming-overhead:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "⏱️  Profiling streaming visualization overhead (1 scenario A/B test)..."
+    echo "   Target: < 5% overhead from streaming callback"
+    echo ""
+    EXP_ROOT="${NUPLAN_EXP_ROOT:-$HOME/nuplan/exp}"
+
+    # Extract just simulation time (ignore 20s scenario loading overhead)
+    echo "📊 Run 1: Baseline (no streaming callback)"
+    BASELINE_START=$(date +%s.%N)
+    .venv/bin/python nuplan/planning/script/run_simulation.py \
+        experiment_name=profile_baseline \
+        group="$EXP_ROOT/profile" \
+        planner=simple_planner \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter.scenario_types=[near_multiple_vehicles] \
+        scenario_filter.num_scenarios_per_type=1 \
+        worker=sequential \
+        2>&1 | tee /tmp/profile_baseline.log
+    BASELINE_END=$(date +%s.%N)
+    BASELINE_DURATION=$(echo "$BASELINE_END - $BASELINE_START" | bc)
+
+    echo ""
+    echo "📊 Run 2: With streaming callback"
+    STREAMING_START=$(date +%s.%N)
+    .venv/bin/python nuplan/planning/script/run_simulation.py \
+        experiment_name=profile_streaming \
+        group="$EXP_ROOT/profile" \
+        planner=simple_planner \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter.scenario_types=[near_multiple_vehicles] \
+        scenario_filter.num_scenarios_per_type=1 \
+        worker=sequential \
+        +callback=streaming_viz_callback \
+        2>&1 | tee /tmp/profile_streaming.log
+    STREAMING_END=$(date +%s.%N)
+    STREAMING_DURATION=$(echo "$STREAMING_END - $STREAMING_START" | bc)
+
+    # Calculate overhead
+    OVERHEAD=$(echo "scale=2; (($STREAMING_DURATION - $BASELINE_DURATION) / $BASELINE_DURATION) * 100" | bc)
+
+    echo ""
+    echo "═══════════════════════════════════════════"
+    echo "📈 Performance Results:"
+    echo "═══════════════════════════════════════════"
+    echo "   Baseline:  ${BASELINE_DURATION}s"
+    echo "   Streaming: ${STREAMING_DURATION}s"
+    echo "   Overhead:  ${OVERHEAD}%"
+    echo ""
+    if (( $(echo "$OVERHEAD < 5" | bc -l) )); then
+        echo "✅ SUCCESS: Overhead < 5% target!"
+    else
+        echo "⚠️  WARNING: Overhead exceeds 5% target"
+    fi
+    echo "═══════════════════════════════════════════"
+
+# Launch WebSocket visualization server (Phase 2)
+viz-server:
+    @echo "🌐 Launching WebSocket visualization server..."
+    @echo "   WebSocket endpoint: ws://localhost:8765/stream"
+    @echo "   Health check: http://localhost:8765/"
+    @echo ""
+    uv run uvicorn nuplan.planning.visualization.ws_server:app --port 8765 --host 0.0.0.0
+
+# Run simulation with live streaming (requires viz-server running)
+simulate-live planner="simple_planner":
+    @echo "🎬 Running live simulation with streaming visualization..."
+    @echo "   ⚠️  Make sure WebSocket server is running: just viz-server"
+    @echo "   📊 Simulating 1 scenario for quick testing"
+    @echo ""
+    .venv/bin/python nuplan/planning/script/run_simulation.py \
+        experiment_name=live_streaming_test \
+        planner={{planner}} \
+        +simulation=open_loop_boxes \
+        scenario_builder=nuplan_mini \
+        scenario_filter.scenario_types=[near_multiple_vehicles] \
+        scenario_filter.num_scenarios_per_type=1 \
+        worker=sequential \
+        +callback=streaming_viz_callback
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Web Dashboard Commands (Phase 3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Install web dashboard dependencies
+web-install:
+    @echo "📦 Installing web dashboard dependencies..."
+    cd web && npm install
+    @echo "✓ Web dependencies installed!"
+
+# Start web development server
+web-dev:
+    @echo "🌐 Starting web development server..."
+    @echo "   Dashboard: http://localhost:3000"
+    @echo "   Auto-reload: enabled"
+    @echo ""
+    @echo "   ⚠️  Make sure WebSocket server is running: just viz-server"
+    @echo ""
+    cd web && npm run dev
+
+# Build web dashboard for production
+web-build:
+    @echo "🏗️  Building web dashboard for production..."
+    cd web && npm run build
+    @echo "✓ Build complete! Output in web/dist/"
+
+# Preview production build
+web-preview:
+    @echo "👁️  Previewing production build..."
+    @echo "   Dashboard: http://localhost:4173"
+    cd web && npm run preview
+
+# Run complete visualization stack (server + web)
+viz-stack:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🚀 Starting complete visualization stack..."
+    echo ""
+    echo "   1. WebSocket Server: ws://localhost:8765/stream"
+    echo "   2. Web Dashboard: http://localhost:3000"
+    echo ""
+    echo "   Press Ctrl+C to stop all services"
+    echo ""
+
+    # Check if web dependencies are installed
+    if [ ! -d "web/node_modules" ]; then
+        echo "📦 Installing web dependencies first..."
+        cd web && npm install
+    fi
+
+    # Start both servers in background
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+    echo "🌐 Starting WebSocket server..."
+    just viz-server &
+    sleep 2
+
+    echo "🌐 Starting web dev server..."
+    just web-dev &
+
+    # Wait for both processes
+    wait
+
+# Run full end-to-end test (server + web + simulation)
+viz-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "🧪 Running end-to-end visualization test..."
+    echo ""
+    echo "   This will:"
+    echo "   1. Start WebSocket server"
+    echo "   2. Start web dashboard"
+    echo "   3. Run 1 test scenario with streaming"
+    echo ""
+
+    # Check if web dependencies are installed
+    if [ ! -d "web/node_modules" ]; then
+        echo "📦 Installing web dependencies first..."
+        cd web && npm install
+    fi
+
+    # Start servers in background
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+    echo "🌐 Starting WebSocket server..."
+    just viz-server > /tmp/viz-server.log 2>&1 &
+    sleep 2
+
+    echo "🌐 Starting web dashboard..."
+    just web-dev > /tmp/viz-web.log 2>&1 &
+    sleep 3
+
+    echo ""
+    echo "✓ Servers started!"
+    echo "   Open browser to: http://localhost:3000"
+    echo ""
+    echo "🎬 Running test simulation..."
+    echo ""
+
+    # Run simulation with streaming
+    just simulate-live simple_planner
+
+    echo ""
+    echo "✓ Test complete!"
+    echo "   Servers are still running - press Ctrl+C to stop"
+    wait

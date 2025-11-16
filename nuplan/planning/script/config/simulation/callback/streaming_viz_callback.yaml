@@ -1,0 +1,8 @@
+streaming_viz_callback:
+  _target_: nuplan.planning.simulation.callback.streaming_visualization_callback.StreamingVisualizationCallback
+  _convert_: 'all'
+
+  websocket_url: "ws://localhost:8765/ingest"  # WebSocket server ingest endpoint (callback → server)
+  enable_fallback: true                         # Continue simulation even if WebSocket fails
+  max_trajectory_points: 50                     # Downsample trajectory (performance)
+  max_tracked_objects: 100                      # Limit tracked objects sent per frame (performance)
