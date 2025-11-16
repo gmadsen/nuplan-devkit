@@ -58,15 +58,24 @@ export function useWebSocket(url, options = {}) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
+          const wallClock = new Date().toISOString()
 
           // Route message by type
           if (data.type === 'simulation_start') {
-            console.log('[useWebSocket] Simulation started:', data.data.scenario_name)
+            console.log(`[${wallClock}] 🟢 SIMULATION START:`, data.data.scenario_name || data.data.scenario_type)
+            console.log(`  └─ Initial time: ${data.data.initial_time}s, Duration: ${data.data.duration}s`)
             setLatestFrame(data) // Store metadata
           } else if (data.type === 'simulation_step') {
+            const simTime = data.data.time_s?.toFixed(1) || 'N/A'
+            const iteration = data.data.iteration || 'N/A'
+            // Log every 10th frame to avoid spam, but always log first/last
+            if (iteration === 0 || iteration % 10 === 0) {
+              console.log(`[${wallClock}] 🔵 STEP ${iteration}: sim_time=${simTime}s, ego=(${data.data.ego_state?.x?.toFixed(1)}, ${data.data.ego_state?.y?.toFixed(1)}), vel=${data.data.ego_state?.velocity?.toFixed(1)}m/s`)
+            }
             setLatestFrame(data) // Update with latest step
           } else if (data.type === 'simulation_end') {
-            console.log('[useWebSocket] Simulation ended:', data.data.scenario_name)
+            console.log(`[${wallClock}] 🔴 SIMULATION END:`, data.data.scenario_name)
+            console.log(`  └─ Total steps: ${data.data.total_steps}`)
             setLatestFrame(data) // Store completion signal
           } else {
             console.warn('[useWebSocket] Unknown message type:', data.type)
