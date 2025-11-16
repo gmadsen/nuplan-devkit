@@ -1,19 +1,15 @@
-# ABOUTME: WebSocket-based streaming callback for real-time simulation visualization
+# ABOUTME: HTTP-based streaming callback for real-time simulation visualization
 # ABOUTME: Sends simulation state to web dashboard at each timestep with minimal overhead
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Optional
 
 try:
-    import websockets
-    from websockets.sync.client import connect as ws_connect, ClientConnection
+    import requests
 except ImportError:
-    # Graceful degradation if websockets not installed
-    websockets = None
-    ws_connect = None
-    ClientConnection = None
+    # Graceful degradation if requests not installed
+    requests = None
 
 from nuplan.planning.simulation.callback.abstract_callback import AbstractCallback
 from nuplan.planning.simulation.history.simulation_history import SimulationHistory, SimulationHistorySample
@@ -28,7 +24,7 @@ class StreamingVisualizationCallback(AbstractCallback):
     """
     Real-time streaming callback for web-based visualization.
 
-    Streams simulation data via WebSocket at each timestep for live dashboard display.
+    Streams simulation data via HTTP POST at each timestep for live dashboard display.
     Designed for minimal overhead (< 1ms per step) via non-blocking sends and lightweight JSON.
 
     **Architecture**:
@@ -38,94 +34,110 @@ class StreamingVisualizationCallback(AbstractCallback):
 
     **Performance characteristics**:
     - Target overhead: < 1ms per timestep
-    - Fallback: Gracefully degrades if WebSocket server unavailable
-    - Thread safety: Safe for sequential worker only (Ray pickling not supported)
+    - Fallback: Gracefully degrades if server unavailable
+    - Thread safety: Safe for sequential worker (requests library is thread-safe)
 
-    **AIDEV-NOTE**: Use with worker=sequential only - WebSocket connections not pickle-friendly!
+    **Design rationale**:
+    - Uses HTTP POST instead of WebSocket (proper pattern for unidirectional sync→async)
+    - Callback is synchronous (simulation loop) but server is async (FastAPI)
+    - No persistent connection needed (fire-and-forget)
+
+    **AIDEV-NOTE**: HTTP POST is the right choice for sync callback → async server communication!
     """
 
     def __init__(
         self,
-        websocket_url: str = "ws://localhost:8765/ingest",
+        server_url: str = "http://localhost:8765/ingest",
         enable_fallback: bool = True,
         max_trajectory_points: int = 50,
         max_tracked_objects: int = 100,
+        timeout_seconds: float = 0.5,
     ):
         """
         Initialize streaming visualization callback.
 
-        :param websocket_url: WebSocket server URL (e.g., "ws://localhost:8765/ingest")
-        :param enable_fallback: If True, continue simulation even if WebSocket fails
+        :param server_url: HTTP server URL (e.g., "http://localhost:8765/ingest")
+        :param enable_fallback: If True, continue simulation even if server fails
         :param max_trajectory_points: Downsample trajectory to this many points (performance)
         :param max_tracked_objects: Limit tracked objects sent per frame (performance)
+        :param timeout_seconds: HTTP request timeout (keep low to avoid blocking simulation)
         """
-        if websockets is None:
+        if requests is None:
             logger.warning(
-                "websockets library not installed! Install with: uv add websockets\n"
+                "requests library not installed! Install with: uv add requests\n"
                 "StreamingVisualizationCallback will be disabled."
             )
 
-        self.websocket_url = websocket_url
+        self.server_url = server_url
         self.enable_fallback = enable_fallback
         self.max_trajectory_points = max_trajectory_points
         self.max_tracked_objects = max_tracked_objects
+        self.timeout_seconds = timeout_seconds
 
-        self._ws_client: Optional[ClientConnection] = None
+        self._session: Optional[requests.Session] = None
         self._connection_failed = False
         self._step_count = 0
 
-    def _connect(self) -> bool:
+    def _get_session(self) -> Optional[requests.Session]:
         """
-        Establish WebSocket connection (lazy initialization).
+        Get or create HTTP session (lazy initialization with connection pooling).
 
-        :return: True if connected, False if failed
+        :return: Requests session or None if library unavailable
         """
         if self._connection_failed:
-            return False
+            return None
 
-        if self._ws_client is not None:
-            return True
+        if self._session is not None:
+            return self._session
 
-        if websockets is None:
+        if requests is None:
             self._connection_failed = True
-            return False
+            return None
 
         try:
-            logger.info(f"Connecting to WebSocket server at {self.websocket_url}")
-            self._ws_client = ws_connect(self.websocket_url, open_timeout=2.0)
-            logger.info("WebSocket connection established")
-            return True
+            # Create session for connection pooling (faster than creating new connection each time)
+            self._session = requests.Session()
+            logger.info(f"Initialized HTTP session for {self.server_url}")
+            return self._session
         except Exception as e:
-            logger.warning(f"Failed to connect to WebSocket server: {e}")
+            logger.warning(f"Failed to create HTTP session: {e}")
             if not self.enable_fallback:
                 raise
             self._connection_failed = True
-            return False
+            return None
 
     def _send_json(self, data: Dict[str, Any]) -> None:
         """
-        Send JSON message to WebSocket server (non-blocking pattern).
+        Send JSON message to server via HTTP POST (non-blocking pattern with timeout).
 
         :param data: Dictionary to serialize and send
         """
-        if not self._connect():
+        session = self._get_session()
+        if session is None:
             return
 
         try:
-            message = json.dumps(data)
-            self._ws_client.send(message)
-        except Exception as e:
-            logger.warning(f"WebSocket send failed: {e}")
+            response = session.post(
+                self.server_url,
+                json=data,
+                timeout=self.timeout_seconds
+            )
+            response.raise_for_status()  # Raise exception for 4xx/5xx status codes
+        except requests.exceptions.Timeout:
+            logger.warning(f"HTTP POST timeout after {self.timeout_seconds}s - server may be overloaded")
+            if not self.enable_fallback:
+                raise
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"HTTP POST connection failed: {e}")
             if not self.enable_fallback:
                 raise
             # Mark connection as failed to avoid repeated attempts
             self._connection_failed = True
-            if self._ws_client:
-                try:
-                    self._ws_client.close()
-                except:
-                    pass
-                self._ws_client = None
+        except Exception as e:
+            logger.warning(f"HTTP POST failed: {e}")
+            if not self.enable_fallback:
+                raise
+            self._connection_failed = True
 
     def _extract_map_data(self, setup: SimulationSetup) -> Dict[str, Any]:
         """
@@ -222,13 +234,13 @@ class StreamingVisualizationCallback(AbstractCallback):
 
     def on_initialization_end(self, setup: SimulationSetup, planner: AbstractPlanner) -> None:
         """Called once after all scenarios complete."""
-        # Close WebSocket connection
-        if self._ws_client:
+        # Close HTTP session and release connection pool
+        if self._session:
             try:
-                self._ws_client.close()
-                logger.info("WebSocket connection closed")
+                self._session.close()
+                logger.info("HTTP session closed")
             except Exception as e:
-                logger.warning(f"Error closing WebSocket: {e}")
+                logger.warning(f"Error closing HTTP session: {e}")
 
     def on_simulation_start(self, setup: SimulationSetup) -> None:
         """

@@ -103,43 +103,41 @@ async def root():
     }
 
 
-@app.websocket("/ingest")
-async def ingest_endpoint(websocket: WebSocket):
+@app.post("/ingest")
+async def ingest_endpoint(data: Dict[str, Any]):
     """
-    WebSocket endpoint for receiving simulation data from StreamingVisualizationCallback.
+    HTTP POST endpoint for receiving simulation data from StreamingVisualizationCallback.
 
     This is where the simulation SENDS data TO the server.
 
     Flow:
-    1. Callback connects
-    2. Callback sends simulation_start, simulation_step, simulation_end messages
-    3. Server broadcasts to all /stream clients
-    4. Callback disconnects when simulation ends
+    1. Callback sends simulation_start, simulation_step, simulation_end messages via HTTP POST
+    2. Server broadcasts to all /stream WebSocket clients
+    3. Callback doesn't need persistent connection (fire-and-forget)
 
     Protocol:
     - simulation_start: Scenario metadata, map info
     - simulation_step: Ego state, trajectory, agents (every 0.1s)
     - simulation_end: Completion signal
+
+    Design rationale:
+    - HTTP POST is appropriate for unidirectional communication (callback → server)
+    - Avoids sync/async WebSocket mismatch (callback is synchronous)
+    - Server-side WebSocket (/stream) remains async for dashboard clients
     """
-    await websocket.accept()
-    logger.info("Simulation callback connected to /ingest")
-
     try:
-        while True:
-            # Receive messages from simulation callback
-            data = await websocket.receive_json()
+        # Broadcast to all dashboard clients
+        await manager.broadcast(data)
 
-            # Broadcast to all dashboard clients
-            await manager.broadcast(data)
+        # Log message type for debugging
+        msg_type = data.get("type", "unknown")
+        logger.info(f"Received {msg_type} via POST, broadcasting to {len(manager.active_connections)} clients")
 
-            # Log message type for debugging
-            msg_type = data.get("type", "unknown")
-            logger.info(f"Received {msg_type}, broadcasting to {len(manager.active_connections)} clients")
+        return {"status": "ok", "broadcast_count": len(manager.active_connections)}
 
-    except WebSocketDisconnect:
-        logger.info("Simulation callback disconnected from /ingest")
     except Exception as e:
-        logger.error(f"Ingest WebSocket error: {e}")
+        logger.error(f"Ingest POST error: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 @app.websocket("/stream")
