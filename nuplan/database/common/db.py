@@ -14,6 +14,7 @@ from typing import Any, BinaryIO, Callable, Dict, Iterator, List, Optional, Sequ
 import sqlalchemy
 from sqlalchemy import event
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import QueuePool, StaticPool
 
 from nuplan.database.common.blob_store.cache_store import CacheStore
 from nuplan.database.common.blob_store.creator import BlobStoreCreator
@@ -76,13 +77,20 @@ class SessionManager:
     """
     We use this to support multi-processes/threads. The idea is to have one
     db connection for each process, and have one session for each thread.
+
+    AIDEV-NOTE: perf-hot-path; Connection pooling configured to reduce redundant
+    connection creation from 8/step to 0/step (reuse existing connections)
     """
 
-    def __init__(self, engine_creator: Callable[[], Any]) -> None:
+    def __init__(self, engine_creator: Callable[[], Any], pool_size: int = 5, max_overflow: int = 10) -> None:
         """
         :param engine_creator: A callable which returns a DBAPI connection.
+        :param pool_size: Number of connections to maintain in pool (default: 5)
+        :param max_overflow: Maximum number of overflow connections beyond pool_size (default: 10)
         """
         self._creator = engine_creator
+        self._pool_size = pool_size
+        self._max_overflow = max_overflow
 
         # Engines for each thread, because engine can not be shared among multiple threads.
         self._engine_pool = defaultdict(dict)  # type: Dict[int, Dict[threading.Thread, sqlalchemy.engine.Engine]]
@@ -99,7 +107,18 @@ class SessionManager:
         t = threading.current_thread()
 
         if t not in self._engine_pool[pid]:
-            self._engine_pool[pid][t] = sqlalchemy.create_engine('sqlite:///', creator=self._creator)
+            # AIDEV-NOTE: Configure connection pooling to reuse connections across queries
+            # QueuePool is used for file-based SQLite databases to support concurrent access
+            # StaticPool would be used for in-memory databases (:memory:)
+            self._engine_pool[pid][t] = sqlalchemy.create_engine(
+                'sqlite:///',
+                creator=self._creator,
+                poolclass=QueuePool,  # Use QueuePool for connection reuse
+                pool_size=self._pool_size,  # Maintain 5 connections in pool
+                max_overflow=self._max_overflow,  # Allow up to 10 additional connections
+                pool_pre_ping=True,  # Verify connections before use (detect stale connections)
+                pool_recycle=3600,  # Recycle connections after 1 hour
+            )
 
         return self._engine_pool[pid][t]
 
