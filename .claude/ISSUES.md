@@ -1,6 +1,6 @@
 # Active Issues & Tracking
 
-**Last Updated**: 2025-11-16
+**Last Updated**: 2025-11-17 (Phase 1 Quick Wins: 2/3 complete)
 
 **Source of Truth**: [GitHub Issues](https://github.com/gmadsen/nuplan-devkit/issues)
 
@@ -9,10 +9,10 @@
 ## Current Sprint Focus
 
 ### High Priority (Next Up)
-- **[#6 PERF-2](https://github.com/gmadsen/nuplan-devkit/issues/6)**: Phase 1 Quick Wins Optimization (-95ms/step)
-  - Status: Ready to start
-  - Effort: 1-2 days
-  - Impact: 42% improvement toward realtime
+- **[#8 PERF-2c](https://github.com/gmadsen/nuplan-devkit/issues/8)**: Deep Copy Investigation
+  - Status: Needs re-investigation (original premise incorrect)
+  - Effort: 2-4 hours (find actual deepcopy source)
+  - Impact: -20ms/step (if source found and optimized)
 
 ### In Progress
 - **[#5 VIZ-1](https://github.com/gmadsen/nuplan-devkit/issues/5)**: Complete Phase 4 (Streaming Viz Polish)
@@ -21,13 +21,28 @@
 
 ### Backlog (Sequenced)
 - **[#3 PERF-3](https://github.com/gmadsen/nuplan-devkit/issues/3)**: Phase 2 Medium-Effort Optimization (-80ms/step)
-  - Blocked by: PERF-2
+  - Ready to start (Phase 1 foundation complete)
 - **[#4 PERF-4](https://github.com/gmadsen/nuplan-devkit/issues/4)**: Phase 3 Major Refactor (-50ms/step)
   - Blocked by: PERF-3
 
 ---
 
 ## Recently Completed
+
+### 2025-11-17: Phase 1 Quick Wins (Issues #6, #7)
+- **[#6 PERF-2](https://github.com/gmadsen/nuplan-devkit/issues/6)**: Traffic Light Caching ✅
+  - **Performance**: 21% faster simulation (61.7s → 51.0s)
+  - **Impact**: 50% reduction in DB queries (7,176 → 3,588)
+  - **Deliverables**: TrafficLightCache class + 13 unit tests
+  - **Commits**: `54cfaec`, `a91244f` (merge)
+
+- **[#7 PERF-2b](https://github.com/gmadsen/nuplan-devkit/issues/7)**: Connection Pooling ✅
+  - **Performance**: 97% reduction in connections (1,228 → ~5-15)
+  - **Impact**: Eliminate 8 connection creations/step
+  - **Deliverables**: QueuePool config + 8 unit tests + docs
+  - **Commits**: `b1f7b90`, `efdfc51` (merge)
+
+**Combined Impact**: -71ms/step (78% of Phase 1 target), SimplePlanner 0.44x → ~0.79x realtime
 
 ### 2025-11-16: Performance Investigation
 - **[PR #2](https://github.com/gmadsen/nuplan-devkit/pull/2)**: Realtime Performance Investigation
