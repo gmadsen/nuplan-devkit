@@ -9,9 +9,16 @@
 ## Current Sprint Focus
 
 ### High Priority (Next Up)
+- **Instrumentation Infrastructure**: Build before Phase 2 optimizations
+  - Status: Planning (tooling for systematic performance analysis)
+  - Effort: 1-2 days
+  - Impact: Enables data-driven Phase 2 decisions
+  - Deliverables: Per-component timing, flamegraphs, call tracing
+
 - **[#8 PERF-2c](https://github.com/gmadsen/nuplan-devkit/issues/8)**: Deep Copy Investigation
-  - Status: Needs re-investigation (original premise incorrect)
-  - Effort: 2-4 hours (find actual deepcopy source)
+  - Status: Investigation complete, optimization deferred
+  - Findings: History buffer not the source (0 deepcopy calls)
+  - Next: Use instrumentation to find actual source (705,871 calls)
   - Impact: -20ms/step (if source found and optimized)
 
 ### In Progress
@@ -20,8 +27,9 @@
   - Effort: 2-3 hours remaining
 
 ### Backlog (Sequenced)
-- **[#3 PERF-3](https://github.com/gmadsen/nuplan-devkit/issues/3)**: Phase 2 Medium-Effort Optimization (-80ms/step)
-  - Ready to start (Phase 1 foundation complete)
+- **[#3 PERF-3](https://github.com/gmadsen/nuplan-devkit/issues/3)**: Phase 2 Medium-Effort Optimization (-65ms/step)
+  - Blocked by: Instrumentation infrastructure
+  - Targets: Query batching (-30ms), agent caching (-20ms), map optimization (-15ms)
 - **[#4 PERF-4](https://github.com/gmadsen/nuplan-devkit/issues/4)**: Phase 3 Major Refactor (-50ms/step)
   - Blocked by: PERF-3
 
