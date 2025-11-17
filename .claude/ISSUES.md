@@ -42,7 +42,9 @@
   - **Deliverables**: QueuePool config + 8 unit tests + docs
   - **Commits**: `b1f7b90`, `efdfc51` (merge)
 
-**Combined Impact**: -71ms/step (78% of Phase 1 target), SimplePlanner 0.44x → ~0.79x realtime
+**Combined Impact**: -53.7ms/step (23.5% faster), SimplePlanner 2.28x → 1.74x realtime (validated)
+
+**Profiling Report**: See [Phase 1 Complete Report](../docs/plans/2025-11-16-realtime-performance/reports/2025-11-17-PHASE1_COMPLETE.md)
 
 ### 2025-11-16: Performance Investigation
 - **[PR #2](https://github.com/gmadsen/nuplan-devkit/pull/2)**: Realtime Performance Investigation
