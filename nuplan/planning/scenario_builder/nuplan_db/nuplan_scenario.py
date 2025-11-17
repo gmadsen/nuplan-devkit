@@ -383,11 +383,13 @@ class NuPlanScenario(AbstractScenario):
 
     def get_traffic_light_status_at_iteration(self, iteration: int) -> Generator[TrafficLightStatusData, None, None]:
         """Inherited, see superclass."""
+        from nuplan.database.common.traffic_light_cache import get_cached_traffic_light_status
+
         token = self._lidarpc_tokens[iteration]
 
         return cast(
             Generator[TrafficLightStatusData, None, None],
-            get_traffic_light_status_for_lidarpc_token_from_db(self._log_file, token),
+            get_cached_traffic_light_status(self._log_file, self.token, token),
         )
 
     def get_past_traffic_light_status_history(
