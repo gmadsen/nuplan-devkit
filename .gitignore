@@ -40,3 +40,6 @@ web/node_modules/
 # Profiling output (machine-specific, regenerated on-demand)
 profiling_output/
 *.stats
+
+# Git worktrees (temporary parallel workspaces)
+.worktrees/
